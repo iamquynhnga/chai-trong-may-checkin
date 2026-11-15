@@ -1,0 +1,606 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHẢI TRONG MÂY | BTC Check-in</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+:root {
+  --green: #42664f;
+  --green-dark: #294638;
+  --cream: #f5f5f0;
+  --white: #ffffff;
+  --text: #26372d;
+  --border: #dce4dc;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+}
+header {
+  background: var(--green-dark);
+  color: white;
+  padding: 24px 16px;
+  text-align: center;
+}
+header h1 {
+  margin: 0;
+  font-size: 25px;
+  letter-spacing: 1px;
+}
+header p {
+  margin: 10px 0 0;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 18px;
+}
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 5px 20px #00000008;
+}
+h2 { font-size: 19px; margin-top: 0; }
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.primary {
+  background: var(--green);
+  color: white;
+}
+.secondary {
+  background: #edf2ed;
+  color: var(--green-dark);
+}
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.full { width: 100%; margin-top: 10px; }
+input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  margin: 8px 0;
+}
+#reader {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+}
+#reader video {
+  border-radius: 12px;
+}
+.status {
+  padding: 15px;
+  background: #edf2ed;
+  border-radius: 12px;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+.success { color: #176b38; }
+.error { color: #b42318; }
+.warning { color: #a15c00; }
+.info-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+.info-row span:last-child {
+  text-align: right;
+  font-weight: bold;
+  word-break: break-word;
+}
+.hidden { display: none; }
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stat {
+  background: #edf2ed;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+}
+.stat strong {
+  display: block;
+  font-size: 25px;
+  margin-top: 8px;
+}
+footer {
+  text-align: center;
+  padding: 20px;
+  color: #718074;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>CHẢI TRONG MÂY</h1>
+  <p>BTC CHECK-IN</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Thông tin nhân sự BTC</h2>
+    <input id="pin" type="password"
+      placeholder="Nhập PIN BTC">
+    <input id="staff" type="text"
+      placeholder="Tên nhân sự check-in">
+  </div>
+
+  <div class="card">
+    <h2>Quét QR khách tham quan</h2>
+
+    <div id="reader"></div>
+
+    <div id="scanStatus" class="status">
+      Sẵn sàng quét QR.
+    </div>
+
+    <button id="startBtn" class="primary full"
+      onclick="startCamera()">
+      BẬT CAMERA
+    </button>
+
+    <button class="secondary full"
+      onclick="stopCamera()">
+      TẮT CAMERA
+    </button>
+
+    <p style="text-align:center;margin:15px 0">
+      Hoặc nhập QR Token thủ công
+    </p>
+
+    <input id="manualToken"
+      placeholder="Nhập QR Token">
+
+    <button class="secondary full"
+      onclick="manualLookup()">
+      TRA CỨU BOOKING
+    </button>
+  </div>
+
+  <div id="bookingCard" class="card hidden">
+    <h2>Thông tin booking</h2>
+
+    <div id="bookingInfo"></div>
+
+    <div id="bookingStatus" class="status"></div>
+
+    <button id="checkinBtn"
+      class="primary full"
+      onclick="confirmCheckin()">
+      XÁC NHẬN CHECK-IN
+    </button>
+  </div>
+
+  <div class="card">
+    <h2>Dashboard</h2>
+
+    <div class="stats">
+      <div class="stat">
+        Tổng booking
+        <strong id="totalBookings">-</strong>
+      </div>
+      <div class="stat">
+        Tổng khách
+        <strong id="totalGuests">-</strong>
+      </div>
+      <div class="stat">
+        Booking đã đến
+        <strong id="checkedBookings">-</strong>
+      </div>
+      <div class="stat">
+        Khách đã đến
+        <strong id="checkedGuests">-</strong>
+      </div>
+    </div>
+
+    <button class="secondary full"
+      onclick="loadDashboard()">
+      CẬP NHẬT DASHBOARD
+    </button>
+  </div>
+
+</div>
+
+<footer>
+  CHẢI TRONG MÂY · ĐỂ BẢN KỂ, ĐỂ NGƯỜI NHỚ
+</footer>
+
+<script>
+/* ======================================
+   CẤU HÌNH API
+====================================== */
+
+const API_URL = "https://script.google.com/macros/s/AKfycbwRG2Cha80oTQOX94_S6jvqZ8ivMtfHpejroR0Iv7j4FPAsQPtvwjSudrs9gC_yignnBQ/exec";
+
+let scanner = null;
+let currentToken = "";
+let currentBooking = null;
+let busy = false;
+
+/* ======================================
+   GỌI API GOOGLE APPS SCRIPT JSONP
+====================================== */
+
+function callAPI(params) {
+  return new Promise((resolve, reject) => {
+    const callbackName =
+      "ctmCallback_" + Date.now() + "_" +
+      Math.floor(Math.random() * 100000);
+
+    const script = document.createElement("script");
+    const query = new URLSearchParams(params);
+
+    query.set("callback", callbackName);
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("API timeout. Hãy thử lại."));
+    }, 20000);
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = function(result) {
+      cleanup();
+      resolve(result);
+    };
+
+    script.onerror = function() {
+      cleanup();
+      reject(new Error("Không kết nối được API."));
+    };
+
+    script.src = API_URL + "?" + query.toString();
+    document.body.appendChild(script);
+  });
+}
+
+/* ======================================
+   CAMERA QR
+====================================== */
+
+async function startCamera() {
+  const pin = getPIN();
+
+  if (!pin) {
+    alert("Vui lòng nhập PIN BTC.");
+    return;
+  }
+
+  if (scanner) {
+    await stopCamera();
+  }
+
+  scanner = new Html5Qrcode("reader");
+
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
+      },
+      async function(decodedText) {
+        await stopCamera();
+        await lookupQR(decodedText);
+      },
+      function() {}
+    );
+
+    setStatus("scanStatus",
+      "Camera đang hoạt động. Hãy đưa QR vào khung.",
+      "success");
+
+  } catch (error) {
+    scanner = null;
+
+    setStatus("scanStatus",
+      "Không mở được camera. Hãy kiểm tra quyền camera và Safari.",
+      "error");
+
+    alert("Không mở được camera: " + error);
+  }
+}
+
+async function stopCamera() {
+  if (scanner) {
+    try {
+      if (scanner.isScanning) {
+        await scanner.stop();
+      }
+      scanner.clear();
+    } catch (error) {
+      console.log(error);
+    }
+    scanner = null;
+  }
+}
+
+/* ======================================
+   LẤY TOKEN TỪ QR
+====================================== */
+
+function extractToken(text) {
+  try {
+    const url = new URL(text);
+
+    if (url.searchParams.get("token")) {
+      return url.searchParams.get("token");
+    }
+
+    if (url.searchParams.get("t")) {
+      return url.searchParams.get("t");
+    }
+
+  } catch (error) {}
+
+  return text.trim();
+}
+
+/* ======================================
+   LOOKUP BOOKING
+====================================== */
+
+async function manualLookup() {
+  const token = document.getElementById("manualToken").value.trim();
+
+  if (!token) {
+    alert("Vui lòng nhập QR Token.");
+    return;
+  }
+
+  await lookupQR(token);
+}
+
+async function lookupQR(qrText) {
+  if (busy) return;
+  busy = true;
+
+  const token = extractToken(qrText);
+  const pin = getPIN();
+
+  currentToken = token;
+  currentBooking = null;
+
+  document.getElementById("bookingCard")
+    .classList.remove("hidden");
+
+  document.getElementById("checkinBtn").disabled = true;
+
+  setStatus("bookingStatus",
+    "Đang tìm booking...",
+    "warning");
+
+  try {
+    const result = await callAPI({
+      action: "lookup",
+      token: token,
+      pin: pin
+    });
+
+    if (!result.success) {
+      setStatus("bookingStatus",
+        result.message || "Không tìm thấy booking.",
+        "error");
+      document.getElementById("bookingInfo").innerHTML = "";
+      return;
+    }
+
+    currentBooking = result.booking;
+
+    renderBooking(result.booking);
+
+    if (result.booking.status === "CHECKED_IN") {
+      setStatus("bookingStatus",
+        "BOOKING ĐÃ CHECK-IN",
+        "warning");
+      document.getElementById("checkinBtn").disabled = true;
+    } else if (result.booking.status === "CONFIRMED") {
+      setStatus("bookingStatus",
+        "Booking hợp lệ. Vui lòng xác nhận check-in.",
+        "success");
+      document.getElementById("checkinBtn").disabled = false;
+    } else {
+      setStatus("bookingStatus",
+        "Booking chưa được xác nhận.",
+        "error");
+      document.getElementById("checkinBtn").disabled = true;
+    }
+
+  } catch (error) {
+    setStatus("bookingStatus", error.message, "error");
+  } finally {
+    busy = false;
+  }
+}
+
+/* ======================================
+   HIỂN THỊ BOOKING
+====================================== */
+
+function renderBooking(b) {
+  const info = document.getElementById("bookingInfo");
+
+  info.innerHTML = "";
+
+  const fields = [
+    ["Booking ID", b.bookingId],
+    ["Họ tên", b.name],
+    ["Số khách", b.guests],
+    ["Khung giờ", b.slot],
+    ["Trạng thái", b.status]
+  ];
+
+  fields.forEach(function(item) {
+    const row = document.createElement("div");
+    row.className = "info-row";
+
+    const label = document.createElement("span");
+    label.textContent = item[0];
+
+    const value = document.createElement("span");
+    value.textContent = item[1] || "-";
+
+    row.appendChild(label);
+    row.appendChild(value);
+    info.appendChild(row);
+  });
+}
+
+/* ======================================
+   CHECK-IN
+====================================== */
+
+async function confirmCheckin() {
+  if (!currentToken || !currentBooking) {
+    alert("Chưa có booking.");
+    return;
+  }
+
+  if (currentBooking.status === "CHECKED_IN") {
+    alert("Booking đã check-in.");
+    return;
+  }
+
+  const staff = document.getElementById("staff").value.trim();
+
+  if (!staff) {
+    alert("Vui lòng nhập tên nhân sự BTC.");
+    return;
+  }
+
+  const confirmed = confirm(
+    "Xác nhận check-in cho " +
+    currentBooking.name +
+    " (" + currentBooking.guests + " khách)?"
+  );
+
+  if (!confirmed) return;
+
+  const button = document.getElementById("checkinBtn");
+  button.disabled = true;
+  button.textContent = "ĐANG CHECK-IN...";
+
+  try {
+    const result = await callAPI({
+      action: "checkin",
+      token: currentToken,
+      pin: getPIN()
+    });
+
+    if (result.success) {
+      currentBooking = result.booking;
+
+      renderBooking(result.booking);
+
+      setStatus("bookingStatus",
+        "CHECK-IN THÀNH CÔNG!",
+        "success");
+
+      button.textContent = "ĐÃ CHECK-IN";
+      button.disabled = true;
+
+      await loadDashboard();
+
+    } else {
+      setStatus("bookingStatus",
+        result.message || "Check-in thất bại.",
+        "error");
+
+      button.textContent = "XÁC NHẬN CHECK-IN";
+      button.disabled = false;
+    }
+
+  } catch (error) {
+    setStatus("bookingStatus", error.message, "error");
+    button.disabled = false;
+    button.textContent = "XÁC NHẬN CHECK-IN";
+  }
+}
+
+/* ======================================
+   DASHBOARD
+====================================== */
+
+async function loadDashboard() {
+  try {
+    const result = await callAPI({
+      action: "dashboard",
+      pin: getPIN()
+    });
+
+    if (!result.success) {
+      alert(result.message || "Không tải được Dashboard.");
+      return;
+    }
+
+    document.getElementById("totalBookings").textContent =
+      result.totalBookings;
+
+    document.getElementById("totalGuests").textContent =
+      result.totalGuests;
+
+    document.getElementById("checkedBookings").textContent =
+      result.checkedInBookings;
+
+    document.getElementById("checkedGuests").textContent =
+      result.checkedInGuests;
+
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+/* ======================================
+   TIỆN ÍCH
+====================================== */
+
+function getPIN() {
+  return document.getElementById("pin").value.trim();
+}
+
+function setStatus(id, message, type) {
+  const element = document.getElementById(id);
+
+  element.textContent = message;
+  element.className = "status " + (type || "");
+}
+
+/* Không tự bật camera khi mở website */
+</script>
+
+</body>
+</html>
